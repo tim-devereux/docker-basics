@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM docker.io/python:3.12-slim
 
 LABEL maintainer="tdevereux" \
       description="General-purpose Python geospatial research environment"

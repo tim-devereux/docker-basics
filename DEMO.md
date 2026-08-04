@@ -10,7 +10,7 @@ with no Docker involved at all.
 
 ```mermaid
 flowchart LR
-    DF["Dockerfile\nFROM python:3.12-slim"] -->|"docker build"| IMG(["geo-demo:2.0"])
+    DF["Dockerfile\nFROM docker.io/python:3.12-slim"] -->|"docker build"| IMG(["geo-demo:2.0"])
     IMG -->|"docker run"| TEST["Tested locally"]
     IMG -->|"docker push"| HUB[("Docker Hub")]
     HUB -->|"apptainer pull"| SIF["geo-demo.sif"]
@@ -21,11 +21,11 @@ flowchart LR
 
 ## 1. JupyterLab in the browser
 
-`jupyter/scipy-notebook`: JupyterLab plus numpy, pandas, scipy, and
+`docker.io/jupyter/scipy-notebook`: JupyterLab plus numpy, pandas, scipy, and
 matplotlib, pre-installed.
 
 ```bash
-docker run -d -p 8888:8888 -e JUPYTER_TOKEN=demo --name scipy-notebook jupyter/scipy-notebook:python-3.11.6
+docker run -d -p 8888:8888 -e JUPYTER_TOKEN=demo --name scipy-notebook docker.io/jupyter/scipy-notebook:python-3.11.6
 ```
 
 Open **http://localhost:8888/lab?token=demo**.
@@ -38,7 +38,7 @@ Open **http://localhost:8888/lab?token=demo**.
 JupyterLab, `geopandas`, and `rasterio`:
 
 ```dockerfile
-FROM python:3.12-slim
+FROM docker.io/python:3.12-slim
 
 RUN pip install --no-cache-dir \
         jupyterlab geopandas rasterio

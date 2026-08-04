@@ -16,7 +16,7 @@ Docker Hub, run on a cluster with no Docker involved at all:
 
 ```mermaid
 flowchart LR
-    DF["Dockerfile\nFROM python:3.12-slim"] -->|"docker build"| IMG(["geo-demo:2.0"])
+    DF["Dockerfile\nFROM docker.io/python:3.12-slim"] -->|"docker build"| IMG(["geo-demo:2.0"])
     IMG -->|"docker run"| TEST["Tested locally"]
     IMG -->|"docker push"| HUB[("Docker Hub\ntdevereux/geo-demo:2.0")]
     HUB -->|"apptainer pull\ndocker://..."| SIF["geo-demo.sif"]
@@ -84,11 +84,11 @@ Containers and images are referenced by name or ID; both work.
 
 [Jupyter Docker Stacks](https://jupyter-docker-stacks.readthedocs.io/)
 publishes ready-made Python data science images, including
-`jupyter/scipy-notebook`: JupyterLab plus numpy, pandas, scipy, and
+`docker.io/jupyter/scipy-notebook`: JupyterLab plus numpy, pandas, scipy, and
 matplotlib, pre-installed.
 
 ```bash
-docker run -d -p 8888:8888 -e JUPYTER_TOKEN=demo --name scipy-notebook jupyter/scipy-notebook:python-3.11.6
+docker run -d -p 8888:8888 -e JUPYTER_TOKEN=demo --name scipy-notebook docker.io/jupyter/scipy-notebook:python-3.11.6
 ```
 
 Open **http://localhost:8888/lab?token=demo** in a browser to get a
@@ -111,7 +111,7 @@ Python base, rather than a large pre-built stack, and ships a small
 script just to prove the environment works:
 
 ```dockerfile
-FROM python:3.12-slim
+FROM docker.io/python:3.12-slim
 
 LABEL maintainer="tdevereux" \
       description="General-purpose Python geospatial research environment"
@@ -156,7 +156,7 @@ changed, which is why slow steps like package installs should sit
 
 ```mermaid
 flowchart TD
-    L1["FROM python:3.12-slim"] --> L2["RUN pip install jupyterlab, geopandas, rasterio"]
+    L1["FROM docker.io/python:3.12-slim"] --> L2["RUN pip install jupyterlab, geopandas, rasterio"]
     L2 --> L3["WORKDIR /home/analysis"]
     L3 --> L4["COPY analysis.py ."]
     L4 --> L5["CMD jupyter lab"]
@@ -169,7 +169,7 @@ species occurrence data from GBIF) available in the environment. Edit
 `example/Dockerfile`:
 
 ```dockerfile
-FROM python:3.12-slim
+FROM docker.io/python:3.12-slim
 
 LABEL maintainer="tdevereux" \
       description="General-purpose Python geospatial research environment"
@@ -256,7 +256,7 @@ analysis container (e.g. PostGIS):
 
 ```bash
 docker network create my-net
-docker run --network my-net --name postgis-db postgis/postgis
+docker run --network my-net --name postgis-db docker.io/postgis/postgis
 docker run --network my-net --name analysis geo-demo:2.0 python3 analysis.py   # can reach 'postgis-db' by name
 ```
 
@@ -288,7 +288,7 @@ You don't need Docker at all for this: Apptainer can pull and convert
 a Docker Hub image directly into its own single-file `.sif` format:
 
 ```bash
-apptainer pull scipy.sif docker://jupyter/scipy-notebook:python-3.11.6
+apptainer pull scipy.sif docker://docker.io/jupyter/scipy-notebook:python-3.11.6
 apptainer exec scipy.sif python3 -c "import pandas; print(pandas.__version__)"
 ```
 
