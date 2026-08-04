@@ -1,25 +1,15 @@
-FROM rocker/geospatial:latest
+FROM python:3.12-slim
 
 LABEL maintainer="tdevereux" \
-      description="General-purpose R + Python geospatial research environment"
-
-# Add Python alongside R, plus a couple of common geospatial packages —
-# the same base image now supports both R and Python workflows. Installed
-# into a venv (rather than system Python) to avoid clashing with the
-# OS's own Python packages.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 \
-        python3-venv \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:${PATH}"
+      description="General-purpose Python geospatial research environment"
 
 RUN pip install --no-cache-dir \
+        jupyterlab \
         geopandas \
         rasterio
 
 WORKDIR /home/analysis
-COPY analysis.R .
+COPY analysis.py .
 
-CMD ["Rscript", "analysis.R"]
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", \
+     "--allow-root", "--IdentityProvider.token=demo"]

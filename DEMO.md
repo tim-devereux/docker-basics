@@ -1,79 +1,100 @@
-# Demo: Docker → Docker Hub → Apptainer/HPC
+# Docker → Docker Hub → Apptainer/HPC
 
-A four-step live demo: run a scientific container with RStudio in the
-browser, build your own image on top of it, ship it via Docker Hub, then
-run that same image on an HPC cluster with no Docker involved at all.
+A live demo: run a scientific container, build a custom image on top of
+it, ship it via Docker Hub, then run that same image on an HPC cluster
+with no Docker involved at all.
+
+---
+
+## The pipeline
 
 ```mermaid
 flowchart LR
-    DF["Dockerfile\nFROM rocker/geospatial"] -->|"docker build"| IMG(["geo-demo image"])
+    DF["Dockerfile\nFROM python:3.12-slim"] -->|"docker build"| IMG(["geo-demo:2.0"])
     IMG -->|"docker run"| TEST["Tested locally"]
     IMG -->|"docker push"| HUB[("Docker Hub")]
     HUB -->|"apptainer pull"| SIF["geo-demo.sif"]
-    SIF -->|"apptainer run"| JOB["Analysis job on HPC"]
+    SIF -->|"apptainer exec"| JOB["Analysis job on HPC"]
 ```
 
-## 1. RStudio Server in the browser
+---
 
-`rocker/geospatial` ships RStudio Server — R plus the geospatial stack
-(`sf`, `terra`, GDAL, GEOS, PROJ), pre-built.
+## 1. JupyterLab in the browser
+
+`jupyter/scipy-notebook`: JupyterLab plus numpy, pandas, scipy, and
+matplotlib, pre-installed.
 
 ```bash
-docker run -d -p 8787:8787 -e PASSWORD=demo --name rstudio-geo rocker/geospatial
+docker run -d -p 8888:8888 -e JUPYTER_TOKEN=demo --name scipy-notebook jupyter/scipy-notebook:python-3.11.6
 ```
 
-Open **http://localhost:8787** — log in with user `rstudio`, password
-`demo`.
+Open **http://localhost:8888/lab?token=demo**.
 
-```bash
-docker stop rstudio-geo && docker rm rstudio-geo
-```
+---
 
 ## 2. Build a custom image
 
-[`example/Dockerfile`](example/Dockerfile) builds on `rocker/geospatial`
-and adds Python:
+`example/Dockerfile` builds a Python geospatial environment and adds
+JupyterLab, `geopandas`, and `rasterio`:
 
 ```dockerfile
-FROM rocker/geospatial:latest
+FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-venv \
-    && rm -rf /var/lib/apt/lists/*
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:${PATH}"
-RUN pip install --no-cache-dir geopandas rasterio
+RUN pip install --no-cache-dir \
+        jupyterlab geopandas rasterio
 
 WORKDIR /home/analysis
-COPY analysis.R .
-CMD ["Rscript", "analysis.R"]
+COPY analysis.py .
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", \
+     "--allow-root", "--IdentityProvider.token=demo"]
 ```
 
 ```bash
 cd example
-docker build -t geo-demo .
-mkdir -p output
-docker run --rm -v $(pwd)/output:/output geo-demo
+docker build -t geo-demo:2.0 .
 ```
+
+---
+
+## 2. Run it interactively in JupyterLab
+
+The image's `CMD` launches JupyterLab by default, no override needed:
+
+```bash
+docker run -d -p 8888:8888 --name geo-demo-jupyter geo-demo:2.0
+```
+
+Open **http://localhost:8888/lab?token=demo**. `analysis.py` is right
+there in the file browser (served from `/home/analysis`); open it and
+run it interactively to see the buffer output.
+
+---
 
 ## 3. Push to Docker Hub
 
 ```bash
 docker login
-docker tag geo-demo:latest tdevereux/geo-demo:latest
-docker push tdevereux/geo-demo:latest
+docker tag geo-demo:2.0 tdevereux/geo-demo:2.0
+docker push tdevereux/geo-demo:2.0
 ```
+
+---
 
 ## 4. Pull and run on HPC with Apptainer
 
-On the HPC login node — no Docker needed here, just Apptainer:
+On the HPC login node: no Docker needed, just Apptainer. Pass the
+script explicitly since the image's default `CMD` (JupyterLab) never
+exits:
 
 ```bash
-apptainer pull geo-demo.sif docker://tdevereux/geo-demo:latest
-apptainer run --bind /scratch/$USER:/output geo-demo.sif
+apptainer pull geo-demo.sif docker://tdevereux/geo-demo:2.0
+apptainer exec --bind /scratch/$USER:/output geo-demo.sif python3 analysis.py
 ```
 
-Same image, same output, no daemon and no root anywhere on the cluster.
-
 ---
+
+## Same image, same output
+
+No daemon and no root, anywhere on the cluster.
+
 Full primer with explanations: [README.md](README.md)
